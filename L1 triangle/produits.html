@@ -1,0 +1,120 @@
+    <script src="js/produits.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        var btn = document.getElementById('admin-discrete-btn');
+        if(btn){
+          btn.addEventListener('click', function(e){
+            window.open('admin.html', '_blank');
+          });
+        }
+      });
+    </script>
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Produits — L1triangle_store</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/produits.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container header-row">
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="IMG-20251117-WA0045(1).jpg" alt="L1 TRIANGLE logo" class="logo-img" />
+          <div class="brand long">L1 TRIANGLE</div>
+        </div>
+        <nav class="nav">
+          <a href="L1_triangle.html">Accueil</a>
+          <a href="produits.html">Produits</a>
+          <a href="#contact">Contact</a>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="lang-switcher" id="lang-switcher">
+              <button class="lang-btn" id="lang-btn">FR ▾</button>
+              <ul class="lang-list" id="lang-list" aria-hidden="true">
+                <li data-lang="fr">Français</li>
+                <li data-lang="en">English</li>
+                <li data-lang="cr">Kreyòl</li>
+              </ul>
+            </div>
+            <button id="open-cart" class="cart-btn">Panier (0)</button>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1 style="margin-top:12px">Produits</h1>
+
+      <div id="products-root">
+      </div>
+
+      <section id="contact" class="container" style="padding:2rem 1rem">
+        <h2>Contact & commandes</h2>
+        <p class="small">Remplis le formulaire dans le panier ou ouvrir WhatsApp. <br>Paiement à la livraison uniquement.</p>
+        <div style="margin-top:12px">
+          <button id="contact-open-cart" class="btn primary">Voir mon panier &amp; Commander</button>
+        </div>
+      </section>
+    </main>
+
+    <button id="admin-discrete-btn" title="Admin" style="position:fixed;right:12px;bottom:12px;z-index:200;background:none;border:none;cursor:pointer;font-size:1.7em;opacity:0.5;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">🔒</button>
+    <footer class="site-footer container" style="margin-top:2rem; padding:1.5rem 1rem; border-top:1px solid rgba(255,255,255,0.04)">
+      <div style="display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between">
+        <div style="min-width:220px">
+          <strong>L1 TRIANGLE</strong>
+          <div class="small">Matériel gaming & Vape — Livraison locale</div>
+        </div>
+        <div style="min-width:220px">
+          <div><strong>Contact</strong></div>
+              <div class="small">Email: <a id="footer-email-link" href="mailto:l1triangle.info@gmail.com">l1triangle.info@gmail.com</a></div>
+            <div class="small">WhatsApp: <a id="footer-wa-link" href="https://wa.me/50939945794" target="_blank">+509 39 94 57 94</a> · <a id="footer-wa-link-2" href="https://wa.me/50935254241" target="_blank">+509 35 25 4241</a></div>
+          <div class="small">Tél: <a href="tel:+33612345678">+509 43 77 1408</a></div>
+        </div>
+        <div style="min-width:220px">
+          <div><strong>Adresse</strong></div>
+          <div class="small">123 Rue du Triangle, Port-au-Prince</div>
+          <div class="small">Horaires: Lun‑Sam 9:00‑18:00</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; text-align:center" class="small">© L1 TRIANGLE — Tous droits réservés</div>
+    </footer>
+
+    <aside id="cart-drawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <div style="font-weight:700">Panier</div>
+        <div><button id="close-cart" class="btn">Fermer</button></div>
+      </div>
+      <div id="cart-items" class="cart-items">
+      </div>
+      <div class="cart-footer">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+          <div>Total</div>
+          <div id="cart-total" style="font-weight:700">$0.00</div>
+        </div>
+        
+        <form id="order-form" style="margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1)">
+          <div style="margin-bottom:8px">
+            <input type="text" name="name" id="order-name" placeholder="Votre nom" required style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:inherit" />
+          </div>
+          <div style="margin-bottom:8px">
+            <input type="tel" name="phone" id="order-phone" placeholder="Téléphone" required style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:inherit" />
+          </div>
+          <div style="margin-bottom:8px">
+            <input type="email" name="email" id="order-email" placeholder="Email (optionnel)" style="width:100%; padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.3); color:inherit" />
+          </div>
+          <button type="submit" class="btn primary" style="width:100%; margin-bottom:8px">Envoyer ma commande</button>
+          <p id="order-status" class="small" style="text-align:center; margin:0"></p>
+        </form>
+        
+        <div id="cart-actions" style="display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.1)">
+          <a id="mailto-btn" class="btn" style="flex:1; text-align:center">Email</a>
+          <a id="whatsapp-btn" class="btn primary" target="_blank" style="flex:1; text-align:center">WhatsApp</a>
+        </div>
+      </div>
+    </aside>
+
+    <script src="js/produits.js"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+/* Additional product-page specific styles (works with css/styles.css) */
+
+/* Ensure product grid cards look correct on this page */
+#products-root .grid{ margin-top:8px }
+.card-media img{ width:100%; height:180px; object-fit:cover; display:block }
+.poster-badge{ position:absolute; left:12px; bottom:12px; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#071018; padding:6px 8px; border-radius:6px; font-weight:800; font-size:0.85rem; box-shadow:0 6px 18px var(--accent-glow); z-index:3 }
+.card{ position:relative }
+
+/* Make the cart-drawer appear from right like in main site */
+.cart-drawer{ position:fixed; right:0; top:0; height:100%; width:380px; max-width:100%; background:linear-gradient(180deg,var(--panel), #071018); box-shadow:-24px 0 48px rgba(0,0,0,0.6); border-left:1px solid rgba(255,127,107,0.04); transform:translateX(110%); transition:transform .28s ease; z-index:100 }
+.cart-drawer.open{ transform:translateX(0%) }
+.cart-header{ padding:1rem; border-bottom:1px solid rgba(255,127,107,0.03); display:flex; justify-content:space-between; align-items:center }
+.cart-items{ padding:1rem; overflow:auto; max-height:60vh }
+.cart-item{ display:flex; gap:0.8rem; border-bottom:1px dashed rgba(255,255,255,0.02); padding:0.6rem 0 }
+.cart-item img{ width:64px; height:64px; object-fit:cover; border-radius:8px }
+.cart-footer{ padding:1rem; border-top:1px solid rgba(255,255,255,0.02) }
+
+/* Small responsive tweak */
+@media (max-width:600px){ .cart-drawer{ width:100%; } }
+
+/* Admin modal: stack fields on small screens */
+@media (max-width:720px){
+	.admin-row{ grid-template-columns: 1fr; grid-auto-rows: auto }
+	.admin-row .thumb{ width:100%; height:140px }
+	.admin-actions{ justify-content:flex-start }
+}
+
+/* Admin modal styles */
+.modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); }
+.modal .panel{ background:linear-gradient(180deg, #071018, #071018); border-radius:8px; color:inherit }
+.admin-row{ display:grid; grid-template-columns: 120px 1fr 120px; gap:8px; align-items:start; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.03) }
+.admin-row .thumb{ width:100px; height:64px; object-fit:cover; border-radius:6px; }
+.admin-row input[type="text"], .admin-row input[type="number"], .admin-row textarea, .admin-row select{ width:100%; padding:6px; border-radius:6px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:inherit }
+.admin-actions{ display:flex; gap:8px; align-items:center }
+.admin-small{ font-size:0.9rem; color:var(--muted) }

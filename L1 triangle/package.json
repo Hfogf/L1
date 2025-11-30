@@ -1,0 +1,8 @@
+{
+  "name": "l1triangle-site",
+  "version": "1.0.0",
+  "description": "Netlify functions for L1_triangle site",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}

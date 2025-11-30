@@ -1,0 +1,14 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+[build]
+  publish = "."
+  command = ""
+
+[context.production.environment]
+  NODE_ENV = "production"
+
+# No functions; this site is purely static. Adjust publish directory if you add a build step (e.g. `dist`).

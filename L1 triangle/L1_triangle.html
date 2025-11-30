@@ -1,0 +1,205 @@
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        var btn = document.getElementById('admin-discrete-btn');
+        if(btn){
+          btn.addEventListener('click', function(e){
+            window.open('admin.html', '_blank');
+          });
+        }
+      });
+    </script>
+  <button id="admin-discrete-btn" title="Admin" style="position:fixed;right:12px;bottom:12px;z-index:200;background:none;border:none;cursor:pointer;font-size:1.7em;opacity:0.5;transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.5">🔒</button>
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>L1 TRIANGLE — Matériel gaming & Vape</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/assets/site.webmanifest">
+    <meta name="application-name" content="L1 TRIANGLE" />
+    <meta name="site-id" content="7b9c2a1e-4f2d-4a3b-9c1d-5e2f3a4b6c7d" />
+    <meta property="og:site_name" content="L1 TRIANGLE" />
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  </head>
+  <body>
+
+    <!-- Animation background only for header and hero -->
+    <div class="bg-anim-zone">
+      <video id="bg-video" class="bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+        <source src="Hailuo_Video__I want you to create a visual_448266720662994952 (1).mp4" type="video/mp4" />
+      </video>
+      <canvas id="bg-canvas" class="bg-canvas" aria-hidden="true"></canvas>
+      <header>
+        <div class="container header-row">
+          <div style="display:flex;align-items:center;gap:12px">
+            <img src="IMG-20251117-WA0045(1).jpg" alt="L1 TRIANGLE logo" class="logo-img" />
+            <div class="brand long">L1 TRIANGLE</div>
+          </div>
+          <nav class="nav">
+            <a href="produits.html" data-i18n="nav.products">Produits</a>
+            <a href="#contact" data-i18n="nav.contact">Contact</a>
+            <div class="lang-switcher" id="lang-switcher">
+              <button class="lang-btn" id="lang-btn">FR ▾</button>
+              <ul class="lang-list" id="lang-list" aria-hidden="true">
+                <li data-lang="fr">Français</li>
+                <li data-lang="en">English</li>
+                <li data-lang="cr">Kreyòl</li>
+              </ul>
+            </div>
+            <button class="cart-btn" id="open-cart" data-i18n="nav.cart">Panier (0)</button>
+          </nav>
+        </div>
+      </header>
+      <section class="hero">
+        <div class="container">
+          <h1 class="neon">L1triangle_store — Technologie <br>Lifestyle authentiques</h1>
+          <p class="lead">Matériel gaming — Manettes, Moniteurs, accessoires et kit vape. Sélectionne tes produits,<br> ajoute-les au panier et finalise ta commande facilement.<br></p> 
+          <div class="hero-cta">
+            <a href="#contact" class="btn">Nous contacter</a>
+          </div>
+        </div>
+        <br>
+        <br>
+        <br>
+        <div class="hero-anim" aria-hidden="true">
+          <span class="dot d1"></span>
+          <span class="dot d2"></span>
+          <span class="dot d3"></span>
+        </div>
+      </section>
+    </div>
+
+    <section id="about" class="about container" aria-labelledby="about-title">
+      <div class="about-card">
+        <h2 id="about-title">À propos de L1triangle_store</h2>
+        <p class="about-lead">L1triangle_store est une entreprise dynamique spécialisée dans les gadgets modernes et les vapes de qualité, mettant l’accent sur l’authenticité, l’efficacité et la satisfaction des clients. Nous proposons une sélection soigneusement choisie pour répondre aux besoins des gamers et des amateurs de lifestyle tech.</p>
+        <ul class="about-list">
+          <li>✅ <strong>Vapes avancées</strong> : grande capacité de puffs, recharge rapide et saveurs exclusives.</li>
+          <li>✅ <strong>Moniteurs gaming &amp; bureautiques</strong> : visualisation claire et performance optimale.</li>
+          <li>✅ <strong>Manettes sans fil</strong> : compatibles Android, PC, gaming mobile, PS4 et PS5.</li>
+          <li>✅ <strong>AirPods originaux</strong> : son puissant, réduction active du bruit (ANC) et excellente connectivité.</li>
+        </ul>
+      </div>
+      <div class="about-features">
+        <div class="feature">
+          <div class="icon">🔒</div>
+          <div class="txt"><strong>Confiance &amp; Sécurité</strong><div class="small">Garantie fournisseurs vérifiés</div></div>
+        </div>
+        <div class="feature">
+          <div class="icon">⚡</div>
+          <div class="txt"><strong>Performance</strong><div class="small">Produits testés pour la qualité</div></div>
+        </div>
+        <div class="feature">
+          <div class="icon">🚚</div>
+          <div class="txt"><strong>Livraison locale</strong><div class="small">Options rapides et fiables</div></div>
+        </div>
+        <div class="feature">
+          <div class="icon">💬</div>
+          <div class="txt"><strong>Support client</strong><div class="small">Assistance avant et après-vente</div></div>
+        </div>
+      </div>
+    </section>
+
+    <main>
+
+        <section class="container" id="produits-html" style="margin:2rem auto 1.5rem auto;">
+          <h2 style="text-align:center; margin-bottom:1.2rem;">Nos catégories phares</h2>
+          <div class="produits-grid">
+            <div class="produit-card">
+              <div class="produit-icone">🎮</div>
+              <div class="produit-titre">Manettes</div>
+              <div class="produit-desc">Manettes ergonomiques, sans fil, autonomie longue durée, compatibles PC et consoles.</div>
+            </div>
+            <div class="produit-card">
+              <div class="produit-icone">🖥️</div>
+              <div class="produit-titre">Moniteurs</div>
+              <div class="produit-desc">Écrans 144Hz/240Hz, dalle IPS, design borderless, parfaits pour le gaming compétitif.</div>
+            </div>
+            <div class="produit-card">
+              <div class="produit-icone">💨</div>
+              <div class="produit-titre">Vape</div>
+              <div class="produit-desc">Kits vape, pods compacts, e-liquides variés, recharge USB-C, pour tous les profils.</div>
+            </div>
+            <div class="produit-card">
+              <div class="produit-icone">🎧</div>
+              <div class="produit-titre">Accessoires</div>
+              <div class="produit-desc">Casques gaming, tapis de souris RGB, claviers mécaniques, pour une expérience immersive.</div>
+            </div>
+
+            <div class="produit-card">
+              <div class="produit-icone">🎧</div>
+              <div class="produit-titre">AirPods</div>
+              <div class="produit-desc">AirPods originaux : son puissant, réduction active du bruit (ANC) et excellente connectivité.</div>
+            </div>
+
+            <div class="produit-card">
+              <div class="produit-icone">🔌</div>
+              <div class="produit-titre">Câbles &amp; Chargeurs</div>
+              <div class="produit-desc">Câbles USB-C, adaptateurs et chargeurs rapides pour tous vos appareils.</div>
+            </div>
+
+            </div>
+            <div class="produits-cta" style="text-align:center; margin-top:1.2rem">
+              <a href="produits.html" class="btn primary" id="see-products">Voir les produits</a>
+            </div>
+        </section>
+
+      <div id="root" class="container"></div>
+
+      <section id="contact" class="container" style="padding:2rem 1rem">
+        <h2>Contact & commandes</h2>
+        <p class="small">Remplis le formulaire dans le panier ou ouvrir WhatsApp. <br>
+             Paiement à la livraison uniquement.</p>
+        <div style="margin-top:12px">
+          <a href="produits.html?open=cart" class="btn primary" id="contact-open-cart-home">Voir mon panier &amp; Commander</a>
+        </div>
+      </section>
+    </main>
+
+  <script src="js/lang.js"></script>
+
+  <script src="js/bg.js"></script>
+
+  <script>
+    (function(){ try{
+      const e = localStorage.getItem('business_email'); const w = localStorage.getItem('business_whatsapp');
+      const em = document.getElementById('footer-email-link'); const wa = document.getElementById('footer-wa-link');
+      if(em && e){ em.href = 'mailto:' + e; em.textContent = e; }
+      if(wa && w){ wa.href = 'https://wa.me/' + w; wa.textContent = (w.startsWith('+')? w : '+'+w.replace(/(\d{2,3})(?=\d)/g,'$1 ').trim()); }
+    }catch(err){} })();
+  </script>
+  <footer class="site-footer container" style="margin-top:2rem; padding:1.5rem 1rem; border-top:1px solid rgba(255,255,255,0.04)">
+    <div style="display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between">
+      <div style="min-width:220px">
+        <strong>L1 TRIANGLE</strong>
+        <div class="small">Gaming gear & Vape — Local delivery</div>
+      </div>
+      <div style="min-width:220px">
+        <div><strong>Contact</strong></div>
+          <div class="small">Email: <a id="footer-email-link" href="mailto:l1triangle.info@gmail.com">l1triangle.info@gmail.com</a></div>
+        <div class="small">WhatsApp: <a id="footer-wa-link" href="https://wa.me/50939945794" target="_blank">+509 39 94 57 94</a> · <a id="footer-wa-link-2" href="https://wa.me/50935254241" target="_blank">+509 35 25 4241</a></div>
+          <div class="small">Tél: <a href="tel:+50939945794">+509 39 94 57 94</a></div>
+      </div>
+      <div style="min-width:220px">
+        <div><strong>Adresse</strong></div>
+        <div class="small">Morne Hercule , Petion-Ville, Port-au-Prince</div>
+        <div class="small">Horaires: Lun‑Sam 9:00‑18:00</div>
+      </div>
+    </div>
+    <div style="margin-top:12px; text-align:center" class="small">© L1 TRIANGLE — Tous droits réservés</div>
+  </footer>
+
+    <aside id="cart-drawer" class="cart-drawer" aria-hidden="true">
+      <div class="cart-header">
+        <h2>Mon Panier</h2>
+        <button id="close-cart" class="cart-close-btn" aria-label="Fermer le panier">✕</button>
+      </div>
+      <div id="cart-items" class="cart-items"></div>
+    </aside>    
+    
+  </body>
+</html>

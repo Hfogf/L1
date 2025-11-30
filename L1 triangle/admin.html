@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="assets/site.webmanifest">
+</head>
+<body>
+        <header>
+            <div class="container header-row">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <img src="IMG-20251117-WA0045(1).jpg" alt="L1 TRIANGLE logo" class="logo-img" />
+                    <div class="brand long">L1 TRIANGLE</div>
+                </div>
+                <nav class="nav">
+                    <a href="L1_triangle.html">Accueil</a>
+                    <a href="produits.html">Produits</a>
+                    <a href="#contact">Contact</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container">
+                <h1 style="margin-top:12px">Panneau d'administration</h1>
+        <div id="login-area">
+            <input type="password" id="admin-password" placeholder="Entrez le mot de passe">
+            <button id="login-button">Se connecter</button>
+        </div>
+
+        <div id="admin-controls" style="display:none;">
+            <h2>Contrôles Admin</h2>
+
+            <div id="product-actions">
+                <button id="add-product">Ajouter un produit</button>
+                <button id="export-json">Exporter JSON</button>
+                <input type="file" id="import-file" accept="application/json" style="display:inline-block; margin-left:8px;">
+                <!-- Business contact quick-edit (email / whatsapp) -->
+                <div id="admin-contact" style="display:inline-flex; align-items:center; gap:8px; margin-left:12px;">
+                    <label class="small" style="margin:0">Email commandes:</label>
+                    <input id="business-email-input" type="email" placeholder="l1triangle.info@gmail.com" style="padding:6px; min-width:220px" />
+                    <label class="small" style="margin:0">WhatsApp:</label>
+                    <input id="business-wa-input" type="text" placeholder="50939945794" style="padding:6px; width:120px" />
+                    <button id="save-business-contact" class="btn">Sauvegarder</button>
+                </div>
+            </div>
+
+            <div id="product-form" style="display:none; margin-top:12px; border:1px solid #ccc; padding:10px;">
+                <h3 id="form-title">Ajouter un produit</h3>
+                <input id="product-id" type="hidden">
+                <div>
+                    <label>Nom:</label>
+                    <input id="product-name" type="text" placeholder="Nom du produit">
+                </div>
+                <div>
+                    <label>Prix:</label>
+                    <input id="product-price" type="text" placeholder="Prix (ex: 19.99)">
+                </div>
+                <div>
+                    <label>Catégorie:</label>
+                    <input id="product-category" type="text" placeholder="Catégorie (ex: Accessoires)">
+                </div>
+                <div>
+                    <label>Description:</label>
+                    <input id="product-desc" type="text" placeholder="Description">
+                </div>
+                <div>
+                    <label>Image URL:</label>
+                    <input id="product-img" type="text" placeholder="https://... ou assets/...">
+                </div>
+                <div style="margin-top:8px;">
+                    <button id="save-product">Enregistrer</button>
+                    <button id="cancel-product">Annuler</button>
+                </div>
+            </div>
+
+            <table id="products-table" border="1" style="width:100%; margin-top:12px; border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Prix</th>
+                        <th>Description</th>
+                        <th>Image</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD = 'L1_TRIANGLE';
+        const STORAGE_KEY = 'products';
+
+        document.getElementById('login-button').addEventListener('click', () => {
+            const input = document.getElementById('admin-password').value;
+            if (input === PASSWORD) {
+                document.getElementById('login-area').style.display = 'none';
+                document.getElementById('admin-controls').style.display = 'block';
+                renderProducts();
+            } else {
+                alert('Mot de passe incorrect');
+            }
+        });
+
+        function loadProducts() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveProducts(products) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+        }
+
+        function renderProducts() {
+            const tbody = document.querySelector('#products-table tbody');
+            tbody.innerHTML = '';
+            const products = loadProducts();
+            products.forEach(p => {
+                const tr = document.createElement('tr');
+                const priceText = (typeof p.price === 'number') ? p.price.toFixed(2) : String(p.price);
+                tr.innerHTML = `
+                    <td>${escapeHtml(p.title || p.name || '')}</td>
+                    <td>${escapeHtml(priceText)}</td>
+                    <td>${escapeHtml(p.description || p.desc || '')}</td>
+                    <td>${p.image ? `<img src="${escapeHtml(p.image || p.img)}" alt="" style="max-width:60px;">` : ''}</td>
+                    <td>
+                        <button class="edit" data-id="${p.id}">Modifier</button>
+                        <button class="delete" data-id="${p.id}">Supprimer</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str && str !== 0) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        document.getElementById('add-product').addEventListener('click', () => showForm());
+        document.getElementById('cancel-product').addEventListener('click', hideForm);
+        document.getElementById('save-product').addEventListener('click', saveForm);
+
+        function showForm(product) {
+            document.getElementById('product-form').style.display = 'block';
+            document.getElementById('form-title').textContent = product ? 'Modifier le produit' : 'Ajouter un produit';
+            document.getElementById('product-id').value = product ? product.id : '';
+            document.getElementById('product-name').value = product ? product.name : '';
+            document.getElementById('product-price').value = product ? product.price : '';
+            document.getElementById('product-desc').value = product ? product.desc : '';
+            document.getElementById('product-img').value = product ? product.img : '';
+        }
+
+        function hideForm() {
+            document.getElementById('product-form').style.display = 'none';
+        }
+
+        function saveForm() {
+            const id = document.getElementById('product-id').value || String(Date.now());
+            const name = document.getElementById('product-name').value.trim();
+            const price = parseFloat(document.getElementById('product-price').value.trim()) || 0;
+            const category = document.getElementById('product-category').value.trim() || 'Divers';
+            const desc = document.getElementById('product-desc').value.trim();
+            const img = document.getElementById('product-img').value.trim();
+
+            if (!name) { alert('Le nom est requis'); return; }
+
+            const products = loadProducts();
+            const existingIndex = products.findIndex(p => p.id === id);
+            const product = { id, title: name, price: price, description: desc, image: img, category: category };
+
+                        if (existingIndex >= 0) products[existingIndex] = product;
+                        else products.push(product);
+
+                        saveProducts(products);
+
+                        try{
+                            fetch('/.netlify/functions/products', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ products: products, message: 'Admin update via admin.html' }) }).then(r=>{ if(!r.ok) console.warn('Remote save failed'); }).catch(()=>{});
+                        }catch(e){}
+            hideForm();
+            renderProducts();
+        }
+
+        document.querySelector('#products-table tbody').addEventListener('click', (e) => {
+            if (e.target.matches('button.edit')) {
+                const id = e.target.getAttribute('data-id');
+                const products = loadProducts();
+                const p = products.find(x => x.id === id);
+                if (p) showForm(p);
+            }
+            if (e.target.matches('button.delete')) {
+                const id = e.target.getAttribute('data-id');
+                if (!confirm('Supprimer ce produit ?')) return;
+                let products = loadProducts();
+                products = products.filter(x => x.id !== id);
+                saveProducts(products);
+                renderProducts();
+            }
+        });
+
+        document.getElementById('export-json').addEventListener('click', () => {
+            const data = JSON.stringify(loadProducts(), null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'products.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('import-file').addEventListener('change', (ev) => {
+            const f = ev.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const data = JSON.parse(reader.result);
+                    if (!Array.isArray(data)) throw new Error('Format invalide');
+                    saveProducts(data.map(p => ({ id: p.id || String(Date.now()), title: p.title || p.name || '', price: typeof p.price === 'number' ? p.price : parseFloat(p.price) || 0, description: p.description || p.desc || '', image: p.image || p.img || '', category: p.category || 'Divers' })));
+                    renderProducts();
+                    alert('Importation terminée');
+                } catch (err) {
+                    alert('Erreur d\'import: ' + err.message);
+                }
+            };
+            reader.readAsText(f);
+            ev.target.value = '';
+        });
+
+        try{
+            const emailInput = document.getElementById('business-email-input');
+            const waInput = document.getElementById('business-wa-input');
+            const saveBtn = document.getElementById('save-business-contact');
+            if(emailInput) emailInput.value = localStorage.getItem('business_email') || 'l1triangle.info@gmail.com';
+            if(waInput) waInput.value = localStorage.getItem('business_whatsapp') || localStorage.getItem('business_whatsapp') || '';
+            if(saveBtn){
+                saveBtn.addEventListener('click', ()=>{
+                    const e = (emailInput.value || '').trim();
+                    const w = (waInput.value || '').trim();
+                    try{ if(e) localStorage.setItem('business_email', e); else localStorage.removeItem('business_email'); }catch(err){}
+                    try{ if(w) localStorage.setItem('business_whatsapp', w); else localStorage.removeItem('business_whatsapp'); }catch(err){}
+                    try{ updateFooterContacts(); }catch(err){}
+                    alert('Contacts mis à jour');
+                });
+            }
+        }catch(e){}
+
+        if (location.hash === '#admin' || localStorage.getItem('admin_autologin') === '1') {
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('admin-controls').style.display = 'block';
+            renderProducts();
+        }
+    </script>
+</body>
+</html>
