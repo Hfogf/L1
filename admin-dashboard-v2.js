@@ -1,261 +1,308 @@
-// ==================== ADMIN DASHBOARD ULTRA-ROBUSTE ====================
+// Admin Dashboard v4 - SÉCURISÉ AVEC SESSION
 
-// API Client simplifié (indépendant)
-class AdminAPI {
-    constructor() {
-        this.baseUrls = [
-            'http://172.29.192.1:3000/api',
-            'http://localhost:3000/api',
-            'http://10.115.107.126:3000/api'
-        ];
-        this.timeout = 15000;
-        this.retries = 5;
+console.log('✅ admin-dashboard-v2.js chargé');
+
+// Configuration API
+const API_URLs = [
+    'http://localhost:3000/api',
+    'http://172.29.192.1:3000/api'
+];
+
+// ==================== API CLIENT AVEC SESSION ====================
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const sessionId = sessionStorage.getItem('admin_sessionId');
+
+    if (!sessionId) {
+        console.error('❌ Pas de session ID trouvée');
+        window.location.href = '/admin-login-v2.html';
+        throw new Error('Non authentifié - redirection vers login');
     }
 
-    async request(endpoint, options = {}) {
-        const method = options.method || 'GET';
-        const body = options.body ? JSON.stringify(options.body) : null;
-        
-        console.log(`📡 [${method}] ${endpoint}`);
+    console.log('🔗 Tentative API:', endpoint, 'avec sessionId');
 
-        let lastError = null;
+    for (let url of API_URLs) {
+        try {
+            const fullUrl = `${url}${endpoint}`;
+            console.log('📡 Essai:', fullUrl);
 
-        for (let urlAttempt = 0; urlAttempt < this.baseUrls.length; urlAttempt++) {
-            const baseUrl = this.baseUrls[urlAttempt];
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
 
-            for (let attempt = 1; attempt <= this.retries; attempt++) {
-                const fullUrl = `${baseUrl}${endpoint}`;
-                
-                try {
-                    console.log(`⏳ Tentative ${attempt}/${this.retries} sur ${baseUrl}`);
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-                    
-                    const response = await fetch(fullUrl, {
-                        method,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body,
-                        mode: 'cors',
-                        credentials: 'omit',
-                        cache: 'no-store',
-                        signal: controller.signal
-                    });
+            const response = await fetch(fullUrl, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Id': sessionId  // ← Passer la session au serveur
+                },
+                body: body ? JSON.stringify(body) : null,
+                mode: 'cors',
+                signal: controller.signal
+            });
 
-                    clearTimeout(timeoutId);
+            clearTimeout(timeout);
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-
-                    let data = null;
-                    const contentType = response.headers.get('content-type');
-                    
-                    if (contentType && contentType.includes('application/json')) {
-                        data = await response.json();
-                    } else {
-                        data = await response.text();
-                    }
-
-                    console.log(`✅ Succès [${method}] ${endpoint}`);
-                    return data;
-
-                } catch (error) {
-                    lastError = error;
-                    console.error(`❌ Erreur: ${error.message}`);
-                    
-                    if (attempt < this.retries) {
-                        const delay = 500 * attempt;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                }
+            if (response.status === 401) {
+                console.error('❌ Session expirée');
+                sessionStorage.removeItem('admin_sessionId');
+                window.location.href = '/admin-login-v2.html';
+                throw new Error('Session expirée');
             }
+
+            if (response.ok) {
+                console.log('✅ Réponse OK de:', fullUrl);
+                return await response.json();
+            }
+
+            console.log('⚠️ Statut non-OK:', response.status);
+        } catch (e) {
+            console.error(`❌ Erreur avec ${url}:`, e.message);
         }
-
-        console.error(`🔴 Erreur totale: ${lastError?.message}`);
-        throw new Error(`Connexion API échouée: ${lastError?.message}`);
     }
 
-    async get(endpoint) {
-        return this.request(endpoint, { method: 'GET' });
-    }
+    throw new Error(`API échouée pour ${endpoint}`);
+}
 
-    async post(endpoint, body) {
-        return this.request(endpoint, { method: 'POST', body });
-    }
+// ==================== AUTHENTIFICATION ====================
 
-    async put(endpoint, body) {
-        return this.request(endpoint, { method: 'PUT', body });
-    }
-
-    async delete(endpoint) {
-        return this.request(endpoint, { method: 'DELETE' });
+function logout() {
+    try {
+        sessionStorage.removeItem('admin_sessionId');
+        window.location.href = '/admin-login-v2.html';
+    } catch (e) {
+        console.error('Erreur logout:', e);
+        location.reload();
     }
 }
 
-const adminAPI = new AdminAPI();
-const ADMIN_CODE = 'L1_TRIANGLE';
-
-// ==================== AUTHENTICATION ====================
-
-function handleLogin(e) {
-    e.preventDefault();
-    const code = document.getElementById('code')?.value;
-    
-    if (code === ADMIN_CODE) {
-        sessionStorage.setItem('admin_authenticated', ADMIN_CODE);
-        showDashboard();
-    } else {
-        const errorEl = document.getElementById('error');
-        if (errorEl) {
-            errorEl.textContent = '❌ Code invalide';
-            errorEl.style.display = 'block';
-        }
-        alert('❌ Code invalide');
+function checkAuthentication() {
+    const sessionId = sessionStorage.getItem('admin_sessionId');
+    if (!sessionId) {
+        console.log('🔒 Pas authentifié');
+        window.location.href = '/admin-login-v2.html';
+        return false;
     }
+    return true;
 }
 
 function logout() {
-    sessionStorage.removeItem('admin_authenticated');
-    location.reload();
-}
-
-function checkAdmin() {
-    const sessionAdmin = sessionStorage.getItem('admin_authenticated');
-    if (sessionAdmin === ADMIN_CODE) {
-        showDashboard();
-        return true;
+    try {
+        sessionStorage.removeItem('admin_sessionId');
+        window.location.href = '/admin-login-v2.html';
+    } catch (e) {
+        console.error('Erreur logout:', e);
+        location.reload();
     }
-    return false;
 }
 
-// ==================== DASHBOARD ====================
+// ==================== DASHBOARD DISPLAY ====================
 
 function showDashboard() {
-    document.body.innerHTML = `
-        <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-            header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-            header h1 { margin: 0; }
-            header button { background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer; font-weight: bold; }
-            
-            .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-            .tab-btn { padding: 10px 20px; background: white; border: 2px solid #ddd; cursor: pointer; border-radius: 3px; font-weight: bold; }
-            .tab-btn.active { background: #667eea; color: white; border-color: #667eea; }
-            
-            .container { max-width: 1200px; margin: 0 auto; }
-            .section { display: none; background: white; padding: 20px; border-radius: 5px; }
-            .section.active { display: block; }
-            
-            .form-group { margin-bottom: 15px; }
-            label { display: block; margin-bottom: 5px; font-weight: bold; }
-            input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; font-size: 14px; }
-            textarea { resize: vertical; min-height: 100px; }
-            
-            button { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer; font-weight: bold; }
-            button:hover { background: #5568d3; }
-            button.danger { background: #e74c3c; }
-            button.danger:hover { background: #c0392b; }
-            
-            table { width: 100%; border-collapse: collapse; }
-            table td, table th { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
-            table th { background: #f0f0f0; font-weight: bold; }
-            table tr:hover { background: #f9f9f9; }
-            
-            .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 3px; margin-bottom: 10px; }
-            .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 3px; margin-bottom: 10px; }
-            .loading { color: #667eea; font-weight: bold; }
-        </style>
+    try {
+        console.log('📊 Affichage du dashboard...');
         
-        <div class="container">
-            <header>
-                <h1>📊 Admin Dashboard L1Triangle</h1>
-                <button onclick="logout()">Déconnexion</button>
-            </header>
-            
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('products')">🛍️ Produits</button>
-                <button class="tab-btn" onclick="switchTab('orders')">📦 Commandes</button>
-                <button class="tab-btn" onclick="switchTab('logs')">📋 Logs</button>
+        document.body.innerHTML = `
+            <div style="position: fixed; top: 20px; right: 20px; background: #ff6b3d; color: white; padding: 10px 15px; border-radius: 6px; font-size: 12px; z-index: 1000;">
+                ✅ Dashboard sécurisé
             </div>
             
-            <div id="products" class="section active"></div>
-            <div id="orders" class="section"></div>
-            <div id="logs" class="section"></div>
-        </div>
-    `;
-    
-    loadProductsAdmin();
-    loadOrdersAdmin();
-    loadLogsAdmin();
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%); color: #e8e8e8; display: flex; min-height: 100vh; }
+                .admin-container { display: flex; width: 100%; height: 100vh; }
+                .sidebar { width: 260px; background: linear-gradient(180deg, rgba(20, 25, 40, 0.98) 0%, rgba(15, 20, 35, 0.98) 100%); border-right: 1px solid rgba(255, 107, 61, 0.15); padding: 25px 18px; display: flex; flex-direction: column; gap: 25px; }
+                .sidebar h2 { font-size: 22px; color: #ff6b3d; margin-bottom: 8px; letter-spacing: 1.5px; }
+                .sidebar-menu { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+                .menu-item { padding: 11px 14px; background: rgba(255, 107, 61, 0.08); border: 1.5px solid rgba(255, 107, 61, 0.15); color: rgba(255, 177, 151, 0.85); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.25s; }
+                .menu-item:hover { background: rgba(255, 107, 61, 0.12); border-color: rgba(255, 107, 61, 0.35); color: #ffb197; }
+                .menu-item.active { background: linear-gradient(135deg, rgba(255, 107, 61, 0.25), rgba(255, 107, 61, 0.12)); border-color: #ff6b3d; color: #ff9966; box-shadow: inset 0 0 12px rgba(255, 107, 61, 0.15); }
+                .logout-btn { padding: 10px 14px; background: linear-gradient(135deg, rgba(255, 107, 61, 0.15), rgba(255, 107, 61, 0.08)); border: 1.5px solid rgba(255, 107, 61, 0.3); color: #ff9966; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: all 0.3s; }
+                .logout-btn:hover { background: linear-gradient(135deg, #ff6b3d, rgba(255, 107, 61, 0.7)); border-color: #ff6b3d; color: #fff; }
+                .main-content { flex: 1; overflow-y: auto; padding: 35px 40px; background: linear-gradient(135deg, rgba(5, 6, 8, 0.5) 0%, rgba(15, 25, 40, 0.5) 100%); }
+                .content-header h1 { font-size: 28px; color: #ff6b3d; margin-bottom: 8px; font-weight: 600; }
+                .content-header p { color: rgba(255, 177, 151, 0.65); font-size: 13px; }
+                .section { display: none; animation: fadeIn 0.3s ease-out; }
+                .section.active { display: block; }
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                .section-card { background: linear-gradient(135deg, rgba(30, 40, 60, 0.6), rgba(20, 30, 50, 0.4)); border: 1px solid rgba(255, 107, 61, 0.12); border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+                h2 { font-size: 18px; color: #ff9966; margin-bottom: 18px; font-weight: 600; border-bottom: 1px solid rgba(255, 107, 61, 0.1); padding-bottom: 12px; }
+                h3 { font-size: 15px; color: #ffb197; margin: 18px 0 14px 0; font-weight: 600; }
+                h4 { color: #ff9966; margin-bottom: 6px; font-size: 14px; font-weight: 600; }
+                .form-group { margin-bottom: 16px; }
+                label { display: block; margin-bottom: 6px; font-weight: 600; color: #ffb197; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+                input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid rgba(255, 107, 61, 0.2); background: rgba(255, 255, 255, 0.04); color: #e8e8e8; border-radius: 6px; font-size: 13px; font-family: inherit; }
+                input:focus, textarea:focus, select:focus { outline: none; border-color: rgba(255, 107, 61, 0.6); background: rgba(255, 107, 61, 0.08); }
+                textarea { resize: vertical; min-height: 90px; }
+                .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                button { padding: 10px 20px; background: linear-gradient(135deg, #ff6b3d, rgba(255, 107, 61, 0.8)); border: none; color: #fff; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 13px; }
+                button:hover { transform: translateY(-2px); }
+                .btn-danger { background: linear-gradient(135deg, rgba(255, 50, 50, 0.7), rgba(255, 100, 100, 0.5)); }
+                table { width: 100%; border-collapse: collapse; }
+                table th { background: rgba(255, 107, 61, 0.1); padding: 12px 14px; color: #ff9966; font-weight: 600; border-bottom: 1.5px solid rgba(255, 107, 61, 0.15); font-size: 12px; }
+                table td { padding: 11px 14px; border-bottom: 1px solid rgba(255, 107, 61, 0.08); color: rgba(232, 232, 232, 0.9); font-size: 13px; }
+                table tr:hover { background: rgba(255, 107, 61, 0.06); }
+                .product-item { background: linear-gradient(135deg, rgba(255, 107, 61, 0.1), rgba(255, 107, 61, 0.05)); padding: 14px; margin-bottom: 12px; border-radius: 8px; border-left: 3px solid #ff6b3d; border: 1px solid rgba(255, 107, 61, 0.15); }
+                .loading { color: #ff6b3d; font-weight: 600; font-size: 13px; }
+            </style>
+            
+            <div class="admin-container">
+                <aside class="sidebar">
+                    <div>
+                        <h2>▲ L1 TRIANGLE</h2>
+                        <p style="font-size: 12px; color: rgba(255, 177, 151, 0.7);">Admin Dashboard</p>
+                    </div>
+                    
+                    <nav class="sidebar-menu">
+                        <button class="menu-item active" data-tab="products">🛍️ PRODUITS</button>
+                        <button class="menu-item" data-tab="orders">📦 COMMANDES</button>
+                        <button class="menu-item" data-tab="logs">📋 LOGS</button>
+                    </nav>
+                    
+                    <button class="logout-btn" onclick="logout()">🚪 DÉCONNEXION</button>
+                </aside>
+                
+                <main class="main-content">
+                    <div class="content-header" style="margin-bottom: 32px;">
+                        <h1>📊 DASHBOARD ADMIN</h1>
+                        <p>Bienvenue dans votre espace d'administration L1TRIANGLE</p>
+                    </div>
+                    
+                    <div id="products" class="section active"></div>
+                    <div id="orders" class="section"></div>
+                    <div id="logs" class="section"></div>
+                </main>
+            </div>
+        `;
+        
+        // Attache les événements
+        document.querySelectorAll('.menu-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = e.target.dataset.tab;
+                switchTab(tab);
+            });
+        });
+        
+        console.log('✅ Interface rendue');
+        loadProductsAdmin();
+        loadOrdersAdmin();
+        loadLogsAdmin();
+        
+    } catch (e) {
+        console.error('❌ Erreur showDashboard:', e);
+        document.body.innerHTML = `<div style="padding: 40px; color: red; font-family: monospace;">❌ ERREUR CRITIQUE: ${e.message}<pre>${e.stack}</pre></div>`;
+    }
 }
 
 function switchTab(tab) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.menu-item').forEach(b => b.classList.remove('active'));
     document.getElementById(tab).classList.add('active');
-    document.querySelector(`[onclick*="${tab}"]`).classList.add('active');
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+}
+
+// ==================== API CLIENT ====================
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+    // Déterminer les URLs à essayer
+    let urls = [];
+    
+    // Toujours essayer localhost en premier (local development)
+    urls.push('http://localhost:3000/api');
+    
+    // Si on n'est pas en local, essayer aussi les IPs
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        urls.push('http://172.29.192.1:3000/api');
+        urls.push('http://10.115.107.126:3000/api');
+    }
+    
+    console.log('🔗 Tentative API pour:', endpoint, 'URLs:', urls);
+    
+    for (let url of urls) {
+        try {
+            const fullUrl = `${url}${endpoint}`;
+            console.log('📡 Essai:', fullUrl);
+            
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(fullUrl, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: body ? JSON.stringify(body) : null,
+                mode: 'cors',
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeout);
+            
+            if (response.ok) {
+                console.log('✅ Réponse OK de:', fullUrl);
+                return await response.json();
+            }
+            console.log('⚠️ Statut non-OK:', response.status);
+        } catch (e) {
+            console.error(`❌ Erreur avec ${url}:`, e.message);
+        }
+    }
+    throw new Error(`API échouée pour ${endpoint} - Vérifiez que le serveur est lancé sur http://localhost:3000`);
 }
 
 // ==================== PRODUITS ====================
 
 async function loadProductsAdmin() {
     const el = document.getElementById('products');
-    el.innerHTML = '<p class="loading">⏳ Chargement...</p>';
+    el.innerHTML = '<div class="section-card"><p class="loading">⏳ Chargement...</p></div>';
     
     try {
-        const products = await adminAPI.get('/products');
-        
+        const products = await apiCall('/products');
         el.innerHTML = `
-            <h2>Gestion des Produits</h2>
-            <h3>➕ Ajouter un produit</h3>
-            <form onsubmit="handleAddProduct(event)" style="display: grid; gap: 10px; margin-bottom: 30px;">
-                <div class="form-group"><label>Nom *</label><input type="text" name="name" required></div>
-                <div class="form-group"><label>Catégorie *</label><select name="category" required><option>manettes</option><option>accessoires</option><option>moniteurs</option><option>airpods</option><option>cables</option></select></div>
-                <div class="form-group"><label>Prix ($) *</label><input type="number" name="price" step="0.01" required></div>
-                <div class="form-group"><label>Stock *</label><input type="number" name="stock" required></div>
-                <div class="form-group"><label>Description</label><textarea name="description"></textarea></div>
-                <div class="form-group"><label>URL Image</label><input type="url" name="image"></div>
-                <button type="submit">Ajouter</button>
-            </form>
-            
-            <h3>Produits existants (${products.length})</h3>
-            <div id="products-list"></div>
-        `;
-        
-        const listEl = document.getElementById('products-list');
-        listEl.innerHTML = (products || []).map(p => `
-            <div style="background: #f9f9f9; padding: 15px; margin-bottom: 10px; border-radius: 3px;">
-                <h4>${p.name}</h4>
-                <p><strong>Cat:</strong> ${p.category} | <strong>$:</strong> ${p.price} | <strong>Stock:</strong> ${p.stock}</p>
-                <button onclick="handleDeleteProduct('${p.id}')" class="danger">🗑️ Supprimer</button>
+            <div class="section-card">
+                <h2>🛍️ GESTION DES PRODUITS</h2>
+                <h3>➕ AJOUTER</h3>
+                <form onsubmit="handleAddProduct(event)">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nom *</label><input type="text" name="name" required></div>
+                        <div class="form-group"><label>Catégorie *</label><select name="category" required><option>manettes</option><option>accessoires</option><option>moniteurs</option></select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Prix ($) *</label><input type="number" name="price" step="0.01" required></div>
+                        <div class="form-group"><label>Stock *</label><input type="number" name="stock" required></div>
+                    </div>
+                    <div class="form-group"><label>Description</label><textarea name="description"></textarea></div>
+                    <button type="submit" style="width: 100%;">AJOUTER</button>
+                </form>
             </div>
-        `).join('');
-        
+            
+            <div class="section-card">
+                <h3>📋 PRODUITS (${products.length})</h3>
+                ${(products || []).map(p => `
+                    <div class="product-item">
+                        <h4>${p.name}</h4>
+                        <p style="margin: 5px 0; color: rgba(255, 177, 151, 0.8); font-size: 12px;">Cat: ${p.category} | Prix: $${p.price} | Stock: ${p.stock}</p>
+                        <button class="btn-danger" onclick="handleDeleteProduct('${p.id}')" style="margin-top: 10px;">SUPPRIMER</button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     } catch (error) {
-        el.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+        el.innerHTML = `<div class="section-card" style="color: red;">❌ ${error.message}</div>`;
     }
 }
 
 async function handleAddProduct(e) {
     e.preventDefault();
-    const form = e.target;
-    const data = new FormData(form);
-    
+    const data = new FormData(e.target);
     const product = {
         name: data.get('name'),
         category: data.get('category'),
         price: parseFloat(data.get('price')),
         stock: parseInt(data.get('stock')),
         description: data.get('description'),
-        image: data.get('image') || 'https://via.placeholder.com/300x200?text=Produit'
+        image: 'https://via.placeholder.com/300x200?text=Produit'
     };
     
     try {
-        await adminAPI.post('/products', product);
+        await apiCall('/products', 'POST', product);
         alert('✅ Produit ajouté!');
         loadProductsAdmin();
     } catch (error) {
@@ -265,9 +312,8 @@ async function handleAddProduct(e) {
 
 async function handleDeleteProduct(id) {
     if (!confirm('Êtes-vous sûr?')) return;
-    
     try {
-        await adminAPI.delete(`/products/${id}`);
+        await apiCall(`/products/${id}`, 'DELETE');
         alert('✅ Supprimé!');
         loadProductsAdmin();
     } catch (error) {
@@ -279,28 +325,23 @@ async function handleDeleteProduct(id) {
 
 async function loadOrdersAdmin() {
     const el = document.getElementById('orders');
-    el.innerHTML = '<p class="loading">⏳ Chargement...</p>';
+    el.innerHTML = '<div class="section-card"><p class="loading">⏳ Chargement...</p></div>';
     
     try {
-        const orders = await adminAPI.get('/orders');
-        
+        const orders = await apiCall('/orders');
         el.innerHTML = `
-            <h2>Commandes (${(orders || []).length})</h2>
-            <table>
-                <tr><th>ID</th><th>Client</th><th>Total</th><th>Date</th></tr>
-                ${(orders || []).map(o => `
-                    <tr>
-                        <td>${o.id}</td>
-                        <td>${o.customerName}</td>
-                        <td>$${o.total?.toFixed(2) || '0'}</td>
-                        <td>${new Date(o.date).toLocaleDateString()}</td>
-                    </tr>
-                `).join('')}
-            </table>
+            <div class="section-card">
+                <h2>📦 COMMANDES (${(orders || []).length})</h2>
+                <table>
+                    <thead><tr><th>ID</th><th>Client</th><th>Total</th><th>Date</th></tr></thead>
+                    <tbody>
+                        ${(orders || []).map(o => `<tr><td>${o.id}</td><td>${o.customerName || 'Anonyme'}</td><td style="color: #6bff6b;">$${o.total?.toFixed(2) || '0'}</td><td>${new Date(o.date).toLocaleDateString()}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
-        
     } catch (error) {
-        el.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+        el.innerHTML = `<div class="section-card" style="color: red;">❌ ${error.message}</div>`;
     }
 }
 
@@ -308,34 +349,34 @@ async function loadOrdersAdmin() {
 
 async function loadLogsAdmin() {
     const el = document.getElementById('logs');
-    el.innerHTML = '<p class="loading">⏳ Chargement...</p>';
+    el.innerHTML = '<div class="section-card"><p class="loading">⏳ Chargement...</p></div>';
     
     try {
-        const logs = await adminAPI.get('/logs');
-        
+        const logs = await apiCall('/logs');
         el.innerHTML = `
-            <h2>Logs Système (${(logs || []).length})</h2>
-            <table>
-                <tr><th>Type</th><th>Message</th><th>Date</th></tr>
-                ${(logs || []).map(l => `
-                    <tr>
-                        <td>${l.type || 'INFO'}</td>
-                        <td>${l.message}</td>
-                        <td>${new Date(l.date).toLocaleString()}</td>
-                    </tr>
-                `).join('')}
-            </table>
+            <div class="section-card">
+                <h2>📋 LOGS (${(logs || []).length})</h2>
+                <table>
+                    <thead><tr><th>Type</th><th>Message</th><th>Date</th></tr></thead>
+                    <tbody>
+                        ${(logs || []).map(l => `<tr><td style="color: ${l.type === 'ERROR' ? '#ff6b6b' : '#6bff6b'};">${l.type}</td><td>${l.message}</td><td style="font-size: 12px;">${new Date(l.date).toLocaleString()}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
-        
     } catch (error) {
-        el.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+        el.innerHTML = `<div class="section-card" style="color: red;">❌ ${error.message}</div>`;
     }
 }
 
 // ==================== INIT ====================
 
+console.log('✅ Script chargé, vérification auth...');
 document.addEventListener('DOMContentLoaded', () => {
-    if (!checkAdmin()) {
-        console.log('Non authentifié - formulaire de login visible');
+    console.log('DOMContentLoaded - vérification');
+
+    if (checkAuthentication()) {
+        console.log('✅ Utilisateur authentifié');
+        showDashboard();
     }
 });
