@@ -192,7 +192,7 @@ function renderProducts(products) {
 
 // ==================== PANIER ====================
 
-const cart = [];
+// Variables globales panier
 let cartCountEl = document.getElementById('cart-count');
 let cartOverlay = document.getElementById('cart-overlay');
 let cartItemsEl = document.getElementById('cart-items');
@@ -201,11 +201,11 @@ let cartTotalEl = document.getElementById('cart-total');
 function attachCartButtons() {
     document.querySelectorAll('.add-to-cart').forEach(btn => {
         btn.onclick = null; // Nettoyer les anciens événements
-        btn.addEventListener('click', addToCart);
+        btn.addEventListener('click', addToCartFromButton);
     });
 }
 
-function addToCart(e) {
+function addToCartFromButton(e) {
     const card = e.target.closest('.product-card');
     const id = card.dataset.id;
     const name = decodeURIComponent(card.dataset.name);
@@ -214,51 +214,29 @@ function addToCart(e) {
 
     const existing = cart.find(item => item.id === id);
     if (existing) {
-        existing.qty++;
+        existing.quantity++;
     } else {
-        cart.push({ id, name, price, image, qty: 1 });
+        cart.push({ id, name, price, image, quantity: 1 });
     }
 
-    renderCart();
+    // Sauvegarder dans localStorage
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    updateCart();
     cartOverlay.classList.remove('hidden');
     console.log(`✅ Produit ajouté: ${name} (total: ${cart.length})`);
 }
 
-function renderCart() {
-    if (!cartItemsEl || !cartTotalEl || !cartCountEl) return;
-
-    cartItemsEl.innerHTML = cart.map(item => `
-        <div class="cart-item" data-id="${item.id}">
-            <img src="${item.image}" alt="${item.name}" class="cart-item-img">
-            <div class="cart-item-info">
-                <h4>${item.name}</h4>
-                <span>$ ${item.price.toFixed(2)}</span>
-            </div>
-            <div class="qty-controls">
-                <button class="qty-btn minus" data-id="${item.id}">-</button>
-                <span class="qty">${item.qty}</span>
-                <button class="qty-btn plus" data-id="${item.id}">+</button>
-            </div>
-            <button class="remove-item" data-id="${item.id}">✕</button>
-        </div>
-    `).join('');
-
-    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    cartTotalEl.textContent = '$ ' + total.toFixed(2);
-    
-    const count = cart.reduce((sum, item) => sum + item.qty, 0);
-    cartCountEl.textContent = count;
-
-    attachCartControls();
-}
+// Supprimer renderCart - remplacée par updateCart qui est définie plus bas
 
 function attachCartControls() {
     document.querySelectorAll('.qty-btn.plus').forEach(btn => {
         btn.onclick = null;
         btn.addEventListener('click', () => {
             const item = cart.find(i => i.id === btn.dataset.id);
-            if (item) item.qty++;
-            renderCart();
+            if (item) item.quantity++;
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCart();
         });
     });
 
@@ -267,12 +245,13 @@ function attachCartControls() {
         btn.addEventListener('click', () => {
             const item = cart.find(i => i.id === btn.dataset.id);
             if (item) {
-                item.qty--;
-                if (item.qty <= 0) {
+                item.quantity--;
+                if (item.quantity <= 0) {
                     cart.splice(cart.indexOf(item), 1);
                 }
             }
-            renderCart();
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCart();
         });
     });
 
@@ -281,7 +260,8 @@ function attachCartControls() {
         btn.addEventListener('click', () => {
             const idx = cart.findIndex(i => i.id === btn.dataset.id);
             if (idx !== -1) cart.splice(idx, 1);
-            renderCart();
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCart();
         });
     });
 }
@@ -313,7 +293,8 @@ async function submitOrder(method) {
         console.log('✅ Commande sauvegardée');
         alert(`✅ Commande enregistrée!\nTotal: $ ${order.total.toFixed(2)}`);
         cart.length = 0;
-        renderCart();
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCart();
     } catch (error) {
         console.error('⚠️ Commande non sauvegardée (hors ligne):', error);
         alert(`⚠️ Commande créée mais non sauvegardée\nTotal: $ ${order.total.toFixed(2)}`);
@@ -346,6 +327,32 @@ function showError(message) {
 
 // ==================== INIT ====================
 
+// Configuration contact
+const CONTACT_CONFIG = {
+    // Numéro WhatsApp: on stocke uniquement des chiffres (pas d'espaces, pas de +)
+    // Exemple valide: 50939945794 (pays + numéro)
+    whatsapp: '50939945794',
+    whatsappCountry: '509', // préfixe pays pour recomposer si l'utilisateur saisit juste le numéro local
+    email: 'l1triangle.info@gmail.com', // Email de la boutique
+    shopName: 'L1 TRIANGLE Store'
+};
+
+// Sanitize et normalise le numéro pour WhatsApp
+function formatPhoneNumber(raw) {
+    const digits = (raw || '').replace(/\D/g, '');
+    if (!digits) return '';
+    // Si l'utilisateur renseigne un numéro local (8 chiffres), on préfixe le pays
+    if (digits.length === 8 && CONTACT_CONFIG.whatsappCountry) {
+        return `${CONTACT_CONFIG.whatsappCountry}${digits}`;
+    }
+    // Si le numéro commence par 0 et fait 10 chiffres, on enlève le 0 et on préfixe
+    if (digits.length === 10 && digits.startsWith('0') && CONTACT_CONFIG.whatsappCountry) {
+        return `${CONTACT_CONFIG.whatsappCountry}${digits.slice(1)}`;
+    }
+    // Sinon on renvoie les chiffres tels quels (déjà avec indicatif normalement)
+    return digits;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎯 Page chargée, initialisation');
     loadProducts();
@@ -359,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         openCartBtn.addEventListener('click', () => {
             if (cartOverlay) {
                 cartOverlay.classList.remove('hidden');
+                updateCart(); // Mettre à jour le panier à l'ouverture
                 console.log('🛒 Panier ouvert');
             }
         });
@@ -382,4 +390,150 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Gérer les boutons WhatsApp et Email
+    setupCartActions();
 });
+
+// ==================== GESTION PANIER ====================
+
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+function updateCart() {
+    const cartItemsEl = document.getElementById('cart-items');
+    const cartTotalEl = document.getElementById('cart-total');
+    const cartCountEl = document.getElementById('cart-count');
+    
+    if (!cartItemsEl) return;
+    
+    // Compter le total des articles
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (cartCountEl) cartCountEl.textContent = totalItems;
+    
+    // Si le panier est vide
+    if (cart.length === 0) {
+        cartItemsEl.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Votre panier est vide</p>';
+        if (cartTotalEl) cartTotalEl.textContent = '0.00';
+        if (cartCountEl) cartCountEl.textContent = '0';
+        return;
+    }
+    
+    // Calculer le total et le nombre d'articles
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    
+    if (cartTotalEl) cartTotalEl.textContent = total.toFixed(2);
+    if (cartCountEl) cartCountEl.textContent = count;
+    
+    // Afficher les produits avec contrôles
+    cartItemsEl.innerHTML = cart.map(item => `
+        <div class="cart-item" data-id="${item.id}">
+            <img src="${item.image || 'https://via.placeholder.com/60'}" class="cart-item-img" alt="${item.name}">
+            <div class="cart-item-info">
+                <h4>${item.name}</h4>
+                <span>$ ${item.price.toFixed(2)}</span>
+            </div>
+            <div class="qty-controls">
+                <button class="qty-btn minus" data-id="${item.id}">-</button>
+                <span class="qty">${item.quantity}</span>
+                <button class="qty-btn plus" data-id="${item.id}">+</button>
+            </div>
+            <button class="remove-item" data-id="${item.id}">✕</button>
+        </div>
+    `).join('');
+    
+    // Réattacher les événements
+    attachCartControls();
+}
+
+function addToCart(productId) {
+    // Cette fonction sera implémentée pour ajouter au panier
+    const existingItem = cart.find(item => item.id === productId);
+    if (existingItem) {
+        existingItem.quantity++;
+    }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCart();
+}
+
+function removeFromCart(productId) {
+    cart = cart.filter(item => item.id !== productId);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCart();
+}
+
+// ==================== WHATSAPP & EMAIL ====================
+
+function setupCartActions() {
+    const whatsappBtn = document.getElementById('cart-whatsapp');
+    const emailBtn = document.getElementById('cart-email');
+    
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', sendToWhatsApp);
+    }
+    
+    if (emailBtn) {
+        emailBtn.addEventListener('click', sendToEmail);
+    }
+}
+
+function sendToWhatsApp() {
+    if (cart.length === 0) {
+        alert('⚠️ Votre panier est vide!');
+        return;
+    }
+
+    const targetNumber = formatPhoneNumber(CONTACT_CONFIG.whatsapp);
+    if (!targetNumber) {
+        alert('❌ Numéro WhatsApp invalide. Vérifiez la configuration.');
+        return;
+    }
+    
+    // Créer le message (on encode à la fin pour éviter les erreurs de format)
+    let rawMessage = `🛍️ Nouvelle commande ${CONTACT_CONFIG.shopName}\n\n`;
+    
+    cart.forEach((item, index) => {
+        rawMessage += `${index + 1}. ${item.name}\n`;
+        rawMessage += `   Quantité: ${item.quantity}\n`;
+        rawMessage += `   Prix unitaire: ${item.price}$\n`;
+        rawMessage += `   Sous-total: ${(item.price * item.quantity).toFixed(2)}$\n\n`;
+    });
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    rawMessage += `TOTAL: ${total.toFixed(2)}$\n\n`;
+    rawMessage += `📱 Merci de votre commande!`;
+    
+    // Encodage propre pour WhatsApp
+    const encoded = encodeURIComponent(rawMessage);
+    const whatsappUrl = `https://wa.me/${targetNumber}?text=${encoded}`;
+    window.open(whatsappUrl, '_blank');
+    
+    console.log('📱 Commande envoyée sur WhatsApp');
+}
+
+function sendToEmail() {
+    if (cart.length === 0) {
+        alert('⚠️ Votre panier est vide!');
+        return;
+    }
+    
+    const subject = `Nouvelle commande - ${CONTACT_CONFIG.shopName}`;
+    let body = `Bonjour,\n\nJe souhaite commander les articles suivants:\n\n`;
+    
+    cart.forEach((item, index) => {
+        body += `${index + 1}. ${item.name}\n`;
+        body += `   Quantité: ${item.quantity}\n`;
+        body += `   Prix: ${item.price}$ x ${item.quantity} = ${(item.price * item.quantity).toFixed(2)}$\n\n`;
+    });
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    body += `TOTAL: ${total.toFixed(2)}$\n\n`;
+    body += `Merci!`;
+    
+    const encodedSubject = encodeURIComponent(subject);
+    const encodedBody = encodeURIComponent(body);
+    const mailtoUrl = `mailto:${CONTACT_CONFIG.email}?subject=${encodedSubject}&body=${encodedBody}`;
+    window.location.href = mailtoUrl;
+    
+    console.log('📧 Commande envoyée par email');
+}
