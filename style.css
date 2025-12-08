@@ -427,34 +427,25 @@ body{
     opacity: 0.7;
 }
 
-/* ADMIN ICON */
+/* ADMIN LINK DISCRET DANS NAV */
 
-.admin-icon{
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    background: rgba(255,107,61,0.15);
-    border: 1px solid rgba(255,107,61,0.3);
-    border-radius: 50%;
-    display: flex;
+.admin-link-discrete {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #ff6b3d;
-    opacity: 0.4;
-    transition: all 0.3s ease;
-    z-index: 999;
-    backdrop-filter: blur(10px);
-    text-decoration: none;
+    opacity: 0.3;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
 }
 
-.admin-icon:hover{
+.admin-link-discrete:hover {
     opacity: 1;
-    background: rgba(255,107,61,0.25);
-    border-color: #ff6b3d;
-    transform: scale(1.1) rotate(5deg);
-    box-shadow: 0 8px 20px rgba(255,107,61,0.3);
+    background: rgba(255,107,61,0.1);
+}
+
+.admin-link-discrete svg {
+    stroke: #ff6b3d;
 }
 
 /* ==================== RESPONSIVE MOBILE/TABLETTE ==================== */
