@@ -4,10 +4,25 @@ if (sessionStorage.getItem('adminAuth') !== 'true') {
 }
 
 // Configuration de l'API avec détection automatique
-const API_URL = window.API_CONFIG ? window.API_CONFIG.API_URL : 'http://localhost:3000/api';
-const API_BASES = window.API_CONFIG ? (window.API_CONFIG.API_URLS || [API_URL]) : [API_URL];
-const API_TIMEOUT = window.API_CONFIG ? window.API_CONFIG.TIMEOUT : 10000;
-const RETRY_ATTEMPTS = window.API_CONFIG ? window.API_CONFIG.RETRY_ATTEMPTS : 3;
+// - GitHub Pages: utilise directement l'API Render
+// - Local: localhost:3000
+// - Production sur Render/Vercel: chemins relatifs /api
+const hostname = window.location.hostname;
+const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
+const isGithub = hostname.includes('github.io');
+
+const API_URL = isLocalDev
+    ? 'http://localhost:3000/api'
+    : isGithub
+        ? 'https://l1triangle-shop.onrender.com/api'
+        : '/api';
+
+const API_BASES = isGithub
+    ? ['https://l1triangle-shop.onrender.com/api']
+    : [API_URL];
+
+const API_TIMEOUT = 10000;
+const RETRY_ATTEMPTS = 3;
 
 // Fonction pour faire des requêtes avec retry
 async function fetchWithRetry(url, options = {}, attempts = RETRY_ATTEMPTS) {

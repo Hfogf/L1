@@ -45,6 +45,14 @@ function readDatabase() {
     return { products: [], orders: [], logs: [] };
 }
 
+function cleanNonAdminProducts(data) {
+    // ✅ AUCUN NETTOYAGE - Conserver TOUS les produits tels quels
+    // Les produits ne sont JAMAIS supprimés, même s'ils ne sont pas admin
+    // Cette fonction ne fait rien volontairement
+    console.log('✅ Aucun produit supprimé - tous les produits conservés');
+    return data;
+}
+
 function writeDatabase(data) {
     try {
         fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
@@ -114,8 +122,12 @@ app.get('/api/products', (req, res) => {
     try {
         const db = readDatabase();
         const products = Array.isArray(db.products) ? db.products : [];
-        console.log(`📦 GET /api/products: ${products.length} items`);
-        res.json(products);
+
+        // Ne renvoyer que les produits ajoutés par l'admin
+        const adminProducts = products.filter(p => p.addedByAdmin === true);
+
+        console.log(`📦 GET /api/products: ${adminProducts.length}/${products.length} admin items`);
+        res.json(adminProducts);
     } catch (error) {
         console.error('❌ Error:', error);
         res.status(500).json({ error: error.message });
@@ -128,11 +140,12 @@ app.post('/api/products', verifyAuth, (req, res) => {
         const newProduct = {
             id: uuidv4(),
             ...req.body,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            addedByAdmin: true  // 🔑 CRUCIAL: Marquer comme produit admin
         };
         db.products.push(newProduct);
         if (!writeDatabase(db)) throw new Error('Save failed');
-        console.log(`✅ Product added: ${newProduct.name}`);
+        console.log(`✅ Product added by admin: ${newProduct.name}`);
         res.status(201).json(newProduct);
     } catch (error) {
         console.error('❌ Error:', error);
@@ -202,6 +215,29 @@ app.get('/api/logs', (req, res) => {
     }
 });
 
+// Log une connexion utilisateur
+app.post('/api/logs/connection', (req, res) => {
+    try {
+        const db = readDatabase();
+        if (!db.logs) db.logs = [];
+        const logEntry = {
+            id: uuidv4(),
+            type: 'connection',
+            timestamp: new Date().toISOString(),
+            userAgent: req.body.userAgent || req.headers['user-agent'],
+            ip: req.ip || req.connection.remoteAddress,
+            ...req.body
+        };
+        db.logs.push(logEntry);
+        if (!writeDatabase(db)) throw new Error('Save failed');
+        console.log('📋 Connexion enregistrée:', logEntry.timestamp);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ==================== ERROR HANDLER ====================
 
 app.use((err, req, res, next) => {
@@ -215,6 +251,19 @@ console.log('\n🔄 Initializing...');
 console.log(`📱 Starting on port ${PORT}...\n`);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
+    // 🔑 NETTOYAGE AU DÉMARRAGE: Supprimer les produits non-admin
+    let db = readDatabase();
+    const initialCount = db.products ? db.products.length : 0;
+    
+    db = cleanNonAdminProducts(db);
+    const finalCount = db.products ? db.products.length : 0;
+    
+    if (initialCount > finalCount) {
+        writeDatabase(db);
+        console.log(`🧹 ${initialCount - finalCount} produits non-admin supprimés`);
+        console.log(`✅ ${finalCount} produits admin conservés\n`);
+    }
+    
     const localIP = Object.values(os.networkInterfaces())
         .flat()
         .filter(iface => iface.family === 'IPv4' && !iface.internal)[0]?.address || 'localhost';

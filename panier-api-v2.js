@@ -1,3 +1,21 @@
+// ==================== PRODUITS PAR DÉFAUT ====================
+// Ces produits s'affichent immédiatement en cas de lenteur API
+const DEFAULT_PRODUCTS = [
+    { id: 'admin1', name: '🟢 PRODUIT ADMIN 1', category: 'manettes', price: 100, description: 'Produit test admin', image: '🎮', addedByAdmin: true },
+    { id: 'admin2', name: '🟢 PRODUIT ADMIN 2', category: 'manettes', price: 200, description: 'Produit test admin 2', image: '🎮', addedByAdmin: true },
+    { id: 'prod1', name: 'Manette Sans Fil Pro', category: 'manettes', price: 5000, description: 'Manette gaming sans fil', image: '🎮', addedByAdmin: true },
+    { id: 'prod2', name: 'Moniteur Gaming 180Hz', category: 'moniteurs', price: 33250, description: 'Écran haute performance', image: '📺', addedByAdmin: true },
+    { id: 'prod3', name: 'Casque Gaming RGB', category: 'accessoires', price: 1000, description: 'Casque gaming avec LED', image: '🎧', addedByAdmin: true },
+    { id: 'prod4', name: 'AirPods Pro 3', category: 'airpods', price: 10500, description: 'Écouteurs premium', image: '🎧', addedByAdmin: true },
+    { id: 'prod5', name: 'Câble USB-C Rapide', category: 'cables', price: 750, description: 'Câble de chargement rapide', image: '🔌', addedByAdmin: true },
+    { id: 'prod6', name: 'AIVONO Magic peach ice', category: 'vape', price: 2500, description: 'Vape saveur pêche', image: '💨', addedByAdmin: true }
+];
+
+// ==================== BASE IMAGES ====================
+const IMAGE_BASE = (window.location.origin.includes('github.io'))
+    ? 'https://raw.githubusercontent.com/Hfogf/l1triangle-shop/main/'
+    : '';
+
 // ==================== CONFIGURATION API ROBUSTE ====================
 
 class APIClient {
@@ -9,7 +27,12 @@ class APIClient {
         if (currentOrigin.includes('onrender.com')) {
             this.baseUrls = [`${currentOrigin}/api`];
             console.log('🌐 Mode production Render:', this.baseUrls[0]);
-        } 
+        }
+        // GitHub Pages doit pointer vers l'API Render
+        else if (currentOrigin.includes('github.io')) {
+            this.baseUrls = ['https://l1triangle-shop.onrender.com/api'];
+            console.log('🌐 Mode GitHub Pages → Render API');
+        }
         // Si localhost, essayer localhost uniquement
         else if (currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1')) {
             this.baseUrls = [
@@ -140,28 +163,45 @@ window.apiClient = new APIClient();
 async function loadProducts() {
     try {
         console.log('🚀 Démarrage du chargement des produits');
-        const products = await window.apiClient.get('/products');
         
-        if (!Array.isArray(products)) {
-            console.warn('⚠️ Pas un array, reçu:', products);
-            throw new Error('Format invalide: expected array');
+        // Afficher les produits par défaut IMMÉDIATEMENT
+        console.log('📦 Affichage des produits par défaut...');
+        renderProducts(DEFAULT_PRODUCTS);
+        
+        // Essayer de charger depuis l'API en parallèle (max 5 sec)
+        let timeoutReached = false;
+        const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+                timeoutReached = true;
+                console.log('⏱️ Timeout 5s - produits par défaut conservés');
+                resolve(null);
+            }, 5000);
+        });
+        
+        try {
+            const productsPromise = window.apiClient.get('/products');
+            const products = await Promise.race([productsPromise, timeoutPromise]);
+            
+            if (products && Array.isArray(products) && products.length > 0) {
+                console.log(`✅ ${products.length} produits reçus de l'API`);
+                renderProducts(products);
+                return products;
+            }
+        } catch (apiError) {
+            console.warn('⚠️ API indisponible, garde produits par défaut:', apiError.message);
         }
-
-        console.log(`📊 ${products.length} produits reçus`);
-        console.table(products);
-        renderProducts(products);
-        return products;
+        
+        // Si pas de réponse API, utiliser les produits par défaut
+        console.log('📦 Utilisation des produits par défaut');
+        return DEFAULT_PRODUCTS;
 
     } catch (error) {
-        console.error('💥 ERREUR CRITIQUE:', error);
-        showError(`Impossible de charger les produits: ${error.message}`);
+        console.error('💥 ERREUR:', error);
+        showError(`Chargement des produits: ${error.message}`);
         
-        // Afficher un message d'erreur sur la page
-        const sections = document.querySelectorAll('.product-section .product-grid');
-        sections.forEach(grid => {
-            grid.innerHTML = `<p style="color: #ff6b3d; text-align: center; padding: 20px;">⚠️ ${error.message}</p>`;
-        });
-        return [];
+        // Afficher un message + les produits par défaut
+        renderProducts(DEFAULT_PRODUCTS);
+        return DEFAULT_PRODUCTS;
     }
 }
 
@@ -205,22 +245,27 @@ function renderProducts(products) {
 
         console.log(`✏️ Rendu ${items.length} produits dans "${category}"`);
         
-        grid.innerHTML = items.map(p => `
+        grid.innerHTML = items.map(p => {
+            const imageUrl = (p.image && p.image.startsWith('http'))
+                ? p.image
+                : (p.image ? `${IMAGE_BASE}${encodeURIComponent(p.image)}` : 'https://via.placeholder.com/300x200?text=Produit');
+            return `
             <article class="product-card"
                      data-id="${p.id}"
                      data-name="${encodeURIComponent(p.name)}"
                      data-price="${p.price}"
                      data-image="${encodeURIComponent(p.image || '')}">
-                <img src="${p.image || 'https://via.placeholder.com/300x200?text=Produit'}" 
+                <img src="${imageUrl}" 
                      alt="${p.name}"
                      onerror="this.src='https://via.placeholder.com/300x200?text=Image'">
                 <h3>${p.name}</h3>
                 <p>${p.description || 'Aucune description'}</p>
-                <div class="price">${parseFloat(p.price).toFixed(2)} $</div>
+                <div class="price">${parseFloat(p.price).toFixed(2)} HTG</div>
                 <small style="opacity:.7;">Stock: ${p.stock || 'N/A'}</small>
                 <button class="product-btn add-to-cart">Ajouter au panier</button>
             </article>
-        `).join('');
+            `;
+        }).join('');
         
         totalRendered += items.length;
     });
@@ -320,28 +365,36 @@ async function submitOrder(method) {
 
     const name = prompt('Votre nom:');
     if (!name) return;
+    
+    const phone = prompt('Votre numéro de téléphone:') || 'Non fourni';
+    const email = prompt('Votre email:') || 'Non fourni';
 
     const order = {
         id: Date.now().toString(),
         customerName: name,
+        customerPhone: phone,
+        customerEmail: email,
         items: cart,
-        total: cart.reduce((sum, item) => sum + (item.price * item.qty), 0),
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
         date: new Date().toISOString(),
-        method: method
+        method: method,
+        ipAddress: 'Client',
+        userAgent: navigator.userAgent
     };
 
     console.log('📝 Nouvelle commande:', order);
 
     try {
         await window.apiClient.post('/orders', order);
-        console.log('✅ Commande sauvegardée');
-        alert(`✅ Commande enregistrée!\nTotal: $ ${order.total.toFixed(2)}`);
+        console.log('✅ Commande sauvegardée dans la base de données');
+        alert(`✅ Commande enregistrée avec succès!\n\nRéférences: ${order.id}\nTotal: ${order.total.toFixed(2)} HTG\n\nVous serez contacté bientôt.`);
         cart.length = 0;
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCart();
+        if (cartOverlay) cartOverlay.classList.add('hidden');
     } catch (error) {
-        console.error('⚠️ Commande non sauvegardée (hors ligne):', error);
-        alert(`⚠️ Commande créée mais non sauvegardée\nTotal: $ ${order.total.toFixed(2)}`);
+        console.error('⚠️ Erreur lors de la sauvegarde:', error);
+        alert(`⚠️ Commande reçue mais erreur sauvegarde\nTotal: ${order.total.toFixed(2)} HTG\n\nVérifiez votre connexion internet.`);
     }
 }
 
@@ -399,6 +452,18 @@ function formatPhoneNumber(raw) {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎯 Page chargée, initialisation');
+    
+    // Enregistrer la connexion
+    try {
+        window.apiClient.post('/logs/connection', {
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString(),
+            page: window.location.href
+        }).catch(err => console.warn('Connection logging failed:', err));
+    } catch (err) {
+        console.warn('Connection logging not available');
+    }
+    
     loadProducts();
     
     // Gérer l'ouverture/fermeture du panier
@@ -475,7 +540,7 @@ function updateCart() {
             <img src="${item.image || 'https://via.placeholder.com/60'}" class="cart-item-img" alt="${item.name}">
             <div class="cart-item-info">
                 <h4>${item.name}</h4>
-                <span>$ ${item.price.toFixed(2)}</span>
+                <span>HTG ${item.price.toFixed(2)}</span>
             </div>
             <div class="qty-controls">
                 <button class="qty-btn minus" data-id="${item.id}">-</button>
@@ -545,12 +610,12 @@ function sendToWhatsApp() {
         const subtotal = (item.price * item.quantity).toFixed(2);
         rawMessage += `${index + 1}. *${item.name}*\n`;
         rawMessage += `   Quantité: ${item.quantity}\n`;
-        rawMessage += `   Prix: ${item.price}$ x ${item.quantity}\n`;
-        rawMessage += `   Sous-total: ${subtotal}$\n\n`;
+        rawMessage += `   Prix: ${item.price} HTG x ${item.quantity}\n`;
+        rawMessage += `   Sous-total: ${subtotal} HTG\n\n`;
     });
     
     const total = currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
-    rawMessage += `💰 *TOTAL: ${total}$*\n\n`;
+    rawMessage += `💰 *TOTAL: ${total} HTG*\n\n`;
     rawMessage += `📱 Merci de votre commande!\n`;
     rawMessage += `Contact: ${CONTACT_CONFIG.shopName}`;
     
@@ -590,12 +655,12 @@ function sendToEmail() {
         const subtotal = (item.price * item.quantity).toFixed(2);
         body += `${index + 1}. ${item.name}\n`;
         body += `   Quantité: ${item.quantity}\n`;
-        body += `   Prix: ${item.price}$ x ${item.quantity} = ${subtotal}$\n\n`;
+        body += `   Prix: ${item.price} HTG x ${item.quantity} = ${subtotal} HTG\n\n`;
     });
     
     const total = currentCart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
     body += `\n━━━━━━━━━━━━━━━━━━━\n`;
-    body += `TOTAL: ${total}$\n`;
+    body += `TOTAL: ${total} HTG\n`;
     body += `━━━━━━━━━━━━━━━━━━━\n\n`;
     body += `Merci!\n\n`;
     body += `---\n`;
