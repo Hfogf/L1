@@ -4,9 +4,13 @@ services:
     env: node
     plan: free
     buildCommand: npm install
-    startCommand: node start.js
+    startCommand: node backend-render.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: admin123
       - key: PORT
         value: 10000

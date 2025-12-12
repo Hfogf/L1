@@ -2,11 +2,12 @@
   "name": "l1triangle-api",
   "version": "1.0.0",
   "description": "API pour L1triangle_store - Gestion des produits et commandes",
-  "main": "api-server.js",
+  "main": "backend-render.js",
   "scripts": {
-    "start": "node render-server.js",
+    "start": "node backend-render.js",
     "dev": "node api-server.js",
-    "render": "node start.js"
+    "render": "node backend-render.js",
+    "test": "node test-complete.js"
   },
   "keywords": [
     "api",

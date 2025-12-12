@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -47,8 +47,6 @@ function readDatabase() {
 
 function cleanNonAdminProducts(data) {
     // ✅ AUCUN NETTOYAGE - Conserver TOUS les produits tels quels
-    // Les produits ne sont JAMAIS supprimés, même s'ils ne sont pas admin
-    // Cette fonction ne fait rien volontairement
     console.log('✅ Aucun produit supprimé - tous les produits conservés');
     return data;
 }
@@ -80,7 +78,6 @@ function verifyAuth(req, res, next) {
 
 // ==================== ROUTES ====================
 
-// Health Check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK' });
 });
@@ -251,7 +248,6 @@ console.log('\n🔄 Initializing...');
 console.log(`📱 Starting on port ${PORT}...\n`);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    // 🔑 NETTOYAGE AU DÉMARRAGE: Supprimer les produits non-admin
     let db = readDatabase();
     const initialCount = db.products ? db.products.length : 0;
     
